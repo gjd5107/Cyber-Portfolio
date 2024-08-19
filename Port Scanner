@@ -1,3 +1,7 @@
+#For linux machines download and create file scanner.txt, to use the portscanner enter the command python3 scanner.txt <ipaddress>
+#In my case the script is being run on a VM so I needed to run the ipconfig command on my Windows machine in order to obatin the ip address of the host
+
+
 import sys
 import socket
 from datetime import datetime
