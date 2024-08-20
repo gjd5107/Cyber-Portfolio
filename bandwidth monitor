@@ -31,6 +31,3 @@ while True:
 
 #sleep for specified frequency, default 1 second
     time.sleep(1)
-
-except KeyboardInterrupt:
-    print("Stopped.")
