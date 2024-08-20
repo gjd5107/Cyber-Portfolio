@@ -1,55 +1,79 @@
 #For linux machines download and create file scanner.txt, to use the portscanner enter the command python3 scanner.txt <ipaddress>
 #In my case the script is being run on a VM so I needed to run the ipconfig command on my Windows machine in order to obatin the ip address of the host
 
-
-import sys
 import socket
 from datetime import datetime
 
-# Scan start time
-t1 = datetime.now()
+def format_time_delta(delta):
+    """Format a timedelta object into hours, minutes, and seconds."""
+    total_seconds = int(delta.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f"{hours}h {minutes}m {seconds}s"
 
-#Define target
-if len(sys.argv) == 2:
-	target = socket.gethostbyname(sys.argv[1]) #translate hostname to IPv4
-else:
-	print("Invalid amount of arguments.")
-	print("Syntax: python scanner.py <ip>")
-	
-#Banner
-print("-" * 50)
-print("Scanning target: "+target)
-print("Time started: "+str(datetime.now()))
-print("-" * 50)
+def scan_ports(target_ip, start_port, end_port):
+    """Scan TCP and UDP ports on the given target IP."""
+    open_ports = {"TCP": [], "UDP": []}
+    
+    # Scan TCP Ports
+    for port in range(start_port, end_port + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.1)
+            if s.connect_ex((target_ip, port)) == 0:
+                print(f"TCP port {port} is open")
+                open_ports["TCP"].append(port)
+    
+    # Scan UDP Ports
+    for port in range(start_port, end_port + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(0.1)
+            try:
+                # Send UDP packet and wait for a response
+                s.sendto(b'', (target_ip, port))
+                s.recvfrom(1024)
+                print(f"UDP port {port} is open")
+                open_ports["UDP"].append(port)
+            except (socket.timeout, socket.error):
+                pass
+    
+    return open_ports
 
-try:
-	for port in range(50,200):
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		socket.setdefaulttimeout(0.05)
-		result = s.connect_ex((target,port))
-		if result == 0:
-			print(f"Port {port} is open")
-		s.close()
-		
-except KeyboardInterrupt:
-	print("\nExiting program.")
-	sys.exit()
-	
-except socket.gaierror:
-	print("Hostname could not be resolved.")
-	sys.exit()
-	
-except socket.error:
-	print("Could not connect to server.")
-	sys.exit()
-	
-# Checking the time again
-t2 = datetime.now()
+def main():
+    # Ask user for target IP address or hostname
+    target = input("Target IP address or hostname: ")
+    
+    try:
+        target_ip = socket.gethostbyname(target)
+    except socket.gaierror:
+        print("Hostname could not be resolved.")
+        return
 
-# Calculates the difference of time, to see how long it took to run the script
-total = t2 - t1
+    # Ask user for port range
+    try:
+        start_port = int(input("Starting port number: "))
+        end_port = int(input("Ending port number: "))
+        if not (1 <= start_port <= 65535 and 1 <= end_port <= 65535 and start_port <= end_port):
+            raise ValueError
+    except ValueError:
+        print("Invalid port range. Please enter valid port numbers between 1 and 65535, and ensure the start port is less than or equal to the end port.")
+        return
 
-# Printing the information to screen
-print("-" * 50)
-print ('Scanning Completed in: ', total)
-print("-" * 50)
+    print("-" * 50)
+    print(f"Scanning target: {target_ip}")
+    print(f"Scanning ports from {start_port} to {end_port}")
+    print(f"Time started: {datetime.now()}")
+    print("-" * 50)
+
+    start_time = datetime.now()
+    open_ports = scan_ports(target_ip, start_port, end_port)
+
+    end_time = datetime.now()
+    duration = end_time - start_time
+
+    print("-" * 50)
+    print(f"Scanning completed in: {format_time_delta(duration)}")
+    print("-" * 50)
+
+if __name__ == "__main__":
+    main()
