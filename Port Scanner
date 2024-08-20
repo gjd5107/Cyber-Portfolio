@@ -1,47 +1,33 @@
 #For linux machines download and create file scanner.py, to use the port scanner enter the command python3 scanner.py
-#In my case the script is being run on a VM so I needed to run the ipconfig command on my Windows machine in order to obtain the ip address of the host
+#In my case the script is being run on a VM so I needed to run the ipconfig command on my Windows machine in order to obtain the ip address of the default gateway
 
 import socket
 from datetime import datetime
 
+#format time
 def format_time_delta(delta):
-    """Format a timedelta object into hours, minutes, and seconds."""
     total_seconds = int(delta.total_seconds())
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
     return f"{hours}h {minutes}m {seconds}s"
 
-def scan_ports(target_ip, start_port, end_port):
-    """Scan TCP and UDP ports on the given target IP."""
-    open_ports = {"TCP": [], "UDP": []}
+#scan ports on target IP
+def scan_tcp_ports(target_ip, start_port, end_port):
+    open_ports = []
     
-    # Scan TCP Ports
     for port in range(start_port, end_port + 1):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(0.1)
             if s.connect_ex((target_ip, port)) == 0:
-                print(f"TCP port {port} is open")
-                open_ports["TCP"].append(port)
-    
-    # Scan UDP Ports
-    for port in range(start_port, end_port + 1):
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.settimeout(0.1)
-            try:
-                # Send UDP packet and wait for a response
-                s.sendto(b'', (target_ip, port))
-                s.recvfrom(1024)
-                print(f"UDP port {port} is open")
-                open_ports["UDP"].append(port)
-            except (socket.timeout, socket.error):
-                pass
+                print(f"Port {port} is open")
+                open_ports.append(port)
     
     return open_ports
 
 def main():
-    # Ask user for target IP address or hostname
-    target = input("Target IP address or hostname: ")
+    # Prompt user for target IP address or hostname
+    target = input("Enter the target IP address or hostname: ")
     
     try:
         target_ip = socket.gethostbyname(target)
@@ -49,10 +35,10 @@ def main():
         print("Hostname could not be resolved.")
         return
 
-    # Ask user for port range
+    # Prompt user for port range
     try:
-        start_port = int(input("Starting port number: "))
-        end_port = int(input("Ending port number: "))
+        start_port = int(input("Enter the starting port number: "))
+        end_port = int(input("Enter the ending port number: "))
         if not (1 <= start_port <= 65535 and 1 <= end_port <= 65535 and start_port <= end_port):
             raise ValueError
     except ValueError:
@@ -61,12 +47,12 @@ def main():
 
     print("-" * 50)
     print(f"Scanning target: {target_ip}")
-    print(f"Scanning ports from {start_port} to {end_port}")
+    print(f"Scanning ports {start_port} - {end_port}")
     print(f"Time started: {datetime.now()}")
     print("-" * 50)
 
     start_time = datetime.now()
-    open_ports = scan_ports(target_ip, start_port, end_port)
+    open_ports = scan_tcp_ports(target_ip, start_port, end_port)
 
     end_time = datetime.now()
     duration = end_time - start_time
@@ -74,6 +60,10 @@ def main():
     print("-" * 50)
     print(f"Scanning completed in: {format_time_delta(duration)}")
     print("-" * 50)
+
+if __name__ == "__main__":
+    main()
+
 
 if __name__ == "__main__":
     main()
